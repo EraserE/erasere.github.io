@@ -89,7 +89,7 @@ Example serverless application architecture using API Gateway
 
 A [Lambda authorizer](https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-use-lambda-authorizer.html) is an [AWS Lambda](https://aws.amazon.com/lambda/) function which API Gateway calls for an authorization check when a client makes a request to an API method.
 
-![img](/assets/blog_res/2022-03-25-Serverless-architecture.assets/glFUBV9Zu7zOzz_r53p0xgJvclXLLKRPn7GT7z1h8MpPWcJA0uO06fF-5YcQXfR4Vy26Vs-ICB5iukDtKHnSCHybbsJL2nIlGrnfJ-sRQqdoWXNiQCS3n0m8hltsf5JGofkuTDFpXoiAlnzZ0lxmpYQsFQ=s2048.png)
+![image-20230329163522443](/assets/blog_res/2022-03-25-Serverless-architecture.assets/image-20230329163522443.png)
 
 In amazon API gateway at AWS, they support WebSockets.
 
