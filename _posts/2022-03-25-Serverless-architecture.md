@@ -27,7 +27,7 @@ With this architecture the client can be relatively unintelligent, with much of 
 
 ### Serverless architecture 
 
-![img](/assets/blog_res/2022-03-25-Serverless-architecture.assets/wkcRENCer2H6otSFiuNfQ-G1fCPzqPISO1Dk0k7lPjvTjgefhb1C0zgAlYjFF2eMFK0-ghG2CepbJf1MH3zCbUV46jduinrzfpxY-lLURkB-jCssCuDp92La2DtZ4yFYDI6il15NGAa67GryE-8OD2E.png)
+![img](/assets/blog_res/2022-03-25-Serverless-architecture.assets/wkcRENCer2H6otSFiuNfQ.png)
 
 This is a massively simplified view, but even here we see a number of significant changes:
 
@@ -85,7 +85,7 @@ But In AWS lambda, their architecture are following. AWS Lambda is a compute ser
 
 Example serverless application architecture using API Gateway
 
-![img](/assets/blog_res/2022-03-25-Serverless-architecture.assets/IL-Sf4gCZP9gWFbJVNphghqjZ87zQWTOAwvC7Y-lwetA4Weoj3CPon-dRTJ1EiZCTYApIGcYup7cLDFvDbr_7HrMbcVt4baMnomS-kcNQqCJjWGCiOiwDG1-3-8e6EU5dZkHNdlgyHU8fRA1DU7lONI.png)
+![img](/assets/blog_res/2022-03-25-Serverless-architecture.assets/IL-Sf4gCZP9gWFbJVNphghqjZ87zQWTOAwvC7Y.png)
 
 A [Lambda authorizer](https://docs.aws.amazon.com/apigateway/latest/developerguide/apigateway-use-lambda-authorizer.html) is an [AWS Lambda](https://aws.amazon.com/lambda/) function which API Gateway calls for an authorization check when a client makes a request to an API method.
 
@@ -99,7 +99,7 @@ A WebSocket API is composed of one or more routes. A **route selection expressio
 
 For example: if your JSON message looks like `{“action” : “onMessage” , “message” : “Hello everyone”}`, then the onMessage route will be chosen for this request.
 
-![img](/assets/blog_res/2022-03-25-Serverless-architecture.assets/Gf3LeUPxCRLL7mHEHvNUYC4HZK9lqsn3VPU6KDm-auo72t_xNbSKLT_Vd_BzKrWuPAxXMMizX-Bl0RhDeE7Hb1YXuAkF6tULLgS9nKVstTMIaZ2dVfQtVImDY3gchLCph-gla5d7b_yt5K7UkhOqZYk.png)
+![img](/assets/blog_res/2022-03-25-Serverless-architecture.assets/Gf3LeUPxCRLL7mHEHvNUYC4HZK9lqsn3VPU6KDm.png)
 
 Lambda handles:
 
