@@ -46,12 +46,25 @@ Nacos 节点间的数据同步过程
 
 - JDK8+
 - Mysql 5.6.5+
+- Docker和docker-compose
 
 ### 2. 下载安装文件
 
+从官网下载nacos安装文件
+
 https://github.com/alibaba/nacos/releases?spm=a2c6h.12873639.article-detail.17.5b0052fdXdMWcf
 
-为了安全需要，还是创建一个用户**nacos**用于启停nacos服务。
+因为conf文件夹下有相应的配置文件，需要修改后导入到docker中。
+
+#### 下载镜像
+
+运行docker，输入一下命令拉取NacOS镜像：
+
+`docker pull nacos/nacos-server:latest`
+
+#### 创建和启动容器
+
+
 
 ### 3. 初始化MySQL数据库
 
