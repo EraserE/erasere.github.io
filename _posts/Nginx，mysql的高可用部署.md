@@ -48,70 +48,69 @@ Nacos 节点间的数据同步过程
 - Mysql 5.6.5+
 - Docker和docker-compose
 
-### 2. 下载安装文件
-
-从官网下载nacos安装文件
-
-https://github.com/alibaba/nacos/releases?spm=a2c6h.12873639.article-detail.17.5b0052fdXdMWcf
-
-因为conf文件夹下有相应的配置文件，需要修改后导入到docker中。
-
-#### 下载镜像
+### 2. 下载镜像
 
 运行docker，输入一下命令拉取NacOS镜像：
 
 `docker pull nacos/nacos-server:latest`
 
-#### 创建和启动容器
-
-
-
 ### 3. 初始化MySQL数据库
 
 NacOS自带的derby数据库并不能很好的适应在集群模式下的部署，所以要将数据库改为MySQL
 
-在mysql新建一个数据库nacos_config，**执行初始化脚本mysql-schema.sql**，脚本在naocs安装文件夹**conf**下
+在mysql新建一个数据库**nacos_config**，**执行初始化脚本mysql-schema.sql**，脚本参见以下链接
+
+https://github.com/alibaba/nacos/blob/master/distribution/conf/mysql-schema.sql
 
 ![在这里插入图片描述](../assets/blog_res/Nginx%EF%BC%8Cmysql%E7%9A%84%E9%AB%98%E5%8F%AF%E7%94%A8%E9%83%A8%E7%BD%B2.assets/bVcYSy2)
 
-### 4. 修改配置
+### 4. 创建NacOS容器
 
-配置文件也在naocs安装文件夹**conf**下，文件名称**application.properties**，配置文件中提供修改默认端口、访问路径的属性等。
+在数据库中创建了相应的表之后，按照下列方法编写Dockerfile，注意将数据库的地址以及用户名密码改成自己的。
 
-找到*Connect URL of DB*的选项，修改成MySQL数据库的内容，数据库地址，用户名和密码根据实际情况修改
+ NACOS_SERVERS表示集群的地址，中间用空格隔开。
 
-```properties
-spring.datasource.platform=mysql
+ MYSQL_SERVICE_DB_NAME表示你在数据库中存放nacos配置的数据库，这里为nacos_config
 
-db.num=1
-db.url.0=jdbc:mysql://IP_ADDRESS:PORT/nacos_config?characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true
-db.user=root
-db.password=123456
+```dockerfile
+FROM nacos/nacos-server
+
+ENV PREFER_HOST_MODE=hostname \
+    MODE=cluster \
+    NACOS_APPLICATION_PORT=8846 \
+    NACOS_SERVERS="192.168.248.129:8846 192.168.248.129:8847 192.168.248.129:8848" \
+    SPRING_DATASOURCE_PLATFORM=mysql \
+    MYSQL_SERVICE_HOST=192.168.248.129 \
+    MYSQL_SERVICE_PORT=3306 \
+    MYSQL_SERVICE_USER=root \
+    MYSQL_SERVICE_PASSWORD=1234 \
+    MYSQL_SERVICE_DB_NAME=nacos_config \
+    NACOS_SERVER_IP=192.168.248.129
+
+EXPOSE 8846
+
+CMD ["sh", "-c", "bin/startup.sh -m standalone"]
 ```
 
-集群配置文件在安装文件夹**conf**下，按照cluster.conf.example将每个nacos节点按照IP:PORT格式配置即可，按行分割。
-
-```properties
-#IP:PORT
-192.168.9.121:8848 #节点1
-192.168.9.122:8848 #节点2
-192.168.9.122:8848 #节点3
-```
-
-配置完后将文件名改成cluster.conf
-
-**将Nacos的每个节点按照上述内容操作，安装并修改配置**
-
-### 5 启动nacos 集群
-
-在Linux 系统中，nacos 的默认启动方式是cluster 模式，即集群模式。
+#### 使用 `docker build` 命令构建镜像：
 
 ```bash
-cd YOUR_LOCATION/nacos/nacos/bin/
-./startup.sh 
+docker build -t my-nacos-image .
 ```
 
-### 6. 客户端连接
+其中，`my-nacos-image` 是给镜像起的名字，可以根据需要自行修改。
+
+#### 使用 `docker run` 命令运行镜像：
+
+```bash
+docker run -d -p 8846:8846 --name my-nacos1 my-nacos-image
+```
+
+这样就会在后台运行一个名为 `my-nacos1` 的容器，使用你构建的镜像，并将容器的 `8846` 端口映射到宿主机的 `8846` 端口上。
+
+**对其他两个节点执行相同的操作。**
+
+### 5. 客户端连接
 
 ![img](../assets/blog_res/Nginx%EF%BC%8Cmysql%E7%9A%84%E9%AB%98%E5%8F%AF%E7%94%A8%E9%83%A8%E7%BD%B2.assets/794174-20230512163244890-2002514048.png)
 
@@ -120,6 +119,8 @@ cd YOUR_LOCATION/nacos/nacos/bin/
 ```properties
 spring.cloud.nacos.discovery.server-addr=192.168.9.121:8848,192.168.9.122:8848,192.168.9.122:8848
 ```
+
+其中要注意docker的网络配置，确保外部能正确访问到docker容器的
 
 ## MySQL高可用
 
@@ -160,7 +161,23 @@ MySQL 主从复制是基于主服务器在binlog跟踪所有对数据库的更�
 
 两台CentOS服务器，确保他们之间可以相互ping通
 
-安装MySQL，版本在5.6.5以上，可以使用yum安装。
+安装MySQL，版本在5.6.5以上，具体版本可以通过命令中的版本号来控制
+
+```bash
+docker pull mysql:5.7
+```
+
+使用一下命令创建MySQL主容器
+
+```bash
+docker run -p 3339:3306 --name mysql-master -e MYSQL_ROOT_PASSWORD=123456 -d mysql:5.7
+```
+
+从容器如下，可以自定义端口映射 主机：容器。由于docker每个容器独立，所以容器端口可以相同
+
+```bash
+docker run -p 3340:3306 --name mysql-slave -e MYSQL_ROOT_PASSWORD=123456 -d mysql:5.7
+```
 
 要注意以下两点：
 
@@ -170,14 +187,18 @@ MySQL 主从复制是基于主服务器在binlog跟踪所有对数据库的更�
 
 ### 2. 配置主服务器
 
-编辑/ect/my.cnf配置文件
+通过命令进入主服务器容器内部，这里mysql-master是你的容器名称，也可以使用容器id代替
+
+```bas
+docker exec -it mysql-master /bin/bash
+```
+
+在前面提到的方法中，**在MySQL里新建一个nacos_config数据库，并执行初始化脚本mysql-schema.sql**
+
+编辑/ect/mysql/my.cnf配置文件
 
 ```properties
 [mysqld]
-datadir=/data/mysql
-socket=/var/lib/mysql/mysql.sock
-user=mysql
-
 #主从复制配置
 innodb_flush_log_at_trx_commit=1
 sync_binlog=1
@@ -196,19 +217,25 @@ server-id=1
 
 # Disabling symbolic-links is recommended to prevent assorted security risks
 symbolic-links=0
-
-[mysqld_safe]
-log-error=/var/log/mysqld.log
-pid-file=/var/run/mysqld/mysqld.pid
 ```
 
 保存并关闭文件，重启MySQL
 
-然后导出主服务器的备份，用来配置从服务器
+```bash
+docker restart mysql-master
+```
+
+再次进入mysql-master容器，打开bash，在容器中创建数据同步用户并授权
+
+```sql
+CREATE USER 'repl'@'%' IDENTIFIED BY 'your_password';
+GRANT REPLICATION SLAVE ON *.* TO 'repl'@'%';
+FLUSH PRIVILEGES;
+```
 
 ### 3. 配置从服务器
 
-添加或修改/ect/my.cnf配置文件
+通过命令进入主服务器容器内部，添加或修改/ect/mysql/my.cnf配置文件
 
 ```properties
 [mysqld]
@@ -222,15 +249,48 @@ binlog-do-db=YOUR_DATABASE_2
 binlog-ignore-db=mysql
 binlog-ignore-db=information_schema
 
+# 开启二进制日志功能
+log-bin=mysql-bin  
+
 # 确保服务器能及时获取主服务器的修改，以保持数据一致性
 relay-log=mysql-relay
 ```
 
 保存并关闭文件，重启MySQL
 
-然后导入主服务器的备份
+在数据库中查看主从同步状态
 
+```bash
+docker exec -it mysql-master /bin/bash
+mysql -uroot -p123456
+show master status;
+```
 
+进入slave服务器，在从数据库中配置主从复制
+
+```bash
+change master to master_host='宿主机ip', master_user='repl', master_password='123456', master_port=3307, master_log_file='mysql-bin.000001', master_log_pos=156, master_connect_retry=30;
+```
+
+主从复制命令参数说明： master_host: 主数据库的IP地址；
+
+master_port：主数据库的运行端口；
+
+master_user：在主数据库创建的用于同步数据的用户账号；
+
+master_password：在主数据库创建的用于同步数据的用户密码；
+
+master_log_file：指定从数据库要复制数据的日志文件，通过查看主数据的状态，获取File参数；
+
+master_log_pos：指定从数据库从哪个位置开始复制数据，通过查看主数据的状态，获取Position参数；
+
+master_connect_retry：连接失败重试的时间间隔，单位为秒。
+
+##### 在从数据库中开启主从同步
+
+```bash
+start slave
+```
 
 ## Redis集群
 
@@ -250,3 +310,85 @@ Redis集群的实现方式主要是主从复制和哨兵模式。主从复制负
 
 哨兵其实是一个运行在特殊模式下的Redis进程，相当于一个观察节点。**哨兵一般是以集群的方式部署的，至少需要三个结点**，其主要负责三件事情：**监控，选主，通知**。哨兵结点之间是通过Redis的**Pub-Sub**机制来相互发现的。
 
+**这里部署三主三从的 Redis 集群。**
+
+### 1. 安装redis
+
+创建docker网络
+
+```bash
+docker network create redis-cluster
+```
+
+拉取镜像：
+
+```bash
+docker pull redis:latest
+```
+
+### 2. 创建节点
+
+创建redis集群的配置文件
+
+```bash
+mkdir /path/to/redis-cluster
+cd /path/to/redis-cluster
+```
+
+创建配置文件 `redis.conf`，并配置如下内容：
+
+```yaml
+port 7000
+cluster-enabled yes
+cluster-config-file nodes.conf
+cluster-node-timeout 5000
+appendonly yes
+```
+
+复制配置文件以创建多个节点的配置：
+
+```bash
+cp redis.conf redis-7001.conf
+cp redis.conf redis-7002.conf
+# 继续复制至更多节点
+```
+
+修改每个节点的配置文件中的端口号和数据目录。
+
+对于每个节点，编写Dockerfile文件
+
+```
+FROM redis:latest
+
+# 设置工作目录
+WORKDIR /data
+
+# 设置配置文件
+COPY redis.conf /etc/redis/redis-7001.conf
+
+# 容器启动时运行的命令
+CMD ["redis-server", "/etc/redis/redis-7001.conf"]
+```
+
+构建镜像，以此类推到所有结点
+
+```bash
+docker build -t redis-node1 .
+```
+
+### 3. 启动集群
+
+分别启动每个 Redis 节点：
+
+```bash
+docker run -d --name redis-node1 --network redis-cluster redis-node1
+docker run -d --name redis-node2 --network redis-cluster redis-node2
+```
+
+进入其中一个节点的bash，使用 `redis-cli` 创建集群：
+
+```bash
+redis-cli --cluster create 127.0.0.1:7000 127.0.0.1:7001 ... --cluster-replicas 1
+```
+
+将节点的 IP 地址和端口号替换为实际的节点地址，`--cluster-replicas 1` 表示每个主节点有一个从节点。
