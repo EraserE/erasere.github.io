@@ -1,3 +1,18 @@
+---
+title: JAVA
+date: 2024-03-06 10:34:00 +0800
+categories: [笔记]
+tags: [Nacos]
+pin: true
+author: Eraser
+
+toc: true
+comments: true
+typora-root-url: ../../eraseryao.github.io
+math: false
+mermaid: true
+---
+
 # Nginx，mysql的高可用部署
 
 ## NacOS集群部署
